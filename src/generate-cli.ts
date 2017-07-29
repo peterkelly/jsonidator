@@ -14,23 +14,22 @@
 
 /// <reference types="node" />
 
-export {
-    ValidationError,
-    join,
-    array,
-    checkObject,
-    string,
-    number,
-    boolean,
-} from "./validate";
+import * as fs from "fs";
 
-export {
-    Model,
-    Interface,
-    Field,
-    Type,
-    ArrayType,
-    NamedType,
-    parse,
-    generate,
-} from "./generate";
+import { parse, generate } from "./generate";
+
+function main(): void {
+    if (process.argv.length < 3) {
+        console.error("Please specify model filename");
+        process.exit(1);
+    }
+
+    const filename = process.argv[2];
+
+    const input = fs.readFileSync(filename, { encoding: "utf-8" });
+    const model = parse(input);
+    // console.log(JSON.stringify(model, null, "    "));
+    process.stdout.write(generate(model));
+}
+
+main();
