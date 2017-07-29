@@ -1,0 +1,12 @@
+interface Family {
+    surname: string;
+    location: string | null;
+    members: Person[];
+}
+
+interface Person {
+    name: string;
+    age: number;
+    employed: boolean;
+    profession?: string;
+}

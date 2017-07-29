@@ -3,9 +3,16 @@ const fs = require("fs");
 const gulp = require("gulp");
 const gulpTslint = require("gulp-tslint");
 const merge = require("merge2");
+const pegjs = require("gulp-pegjs");
 const runSequence = require("run-sequence");
 const tslint = require("tslint");
 const typescript = require("gulp-typescript");
+
+gulp.task("gen-parser", () => {
+    return gulp.src("src/*.pegjs")
+        .pipe(pegjs({ format: "commonjs" }))
+        .pipe(gulp.dest("dist"));
+});
 
 gulp.task("compile", () => {
     const project = typescript.createProject("src/tsconfig.json");
@@ -28,5 +35,5 @@ gulp.task("clean", () => {
 });
 
 gulp.task("default", (cb) => {
-    runSequence("compile", "tslint", cb);
+    runSequence("gen-parser", "compile", "tslint", cb);
 });
