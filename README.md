@@ -1,0 +1,3 @@
+# jsonidator
+
+JSON validator

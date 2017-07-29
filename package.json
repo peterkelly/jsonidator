@@ -1,0 +1,35 @@
+{
+  "name": "jsonidator",
+  "version": "0.0.0",
+  "description": "JSON validator",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/peterkelly/jsonidator.git"
+  },
+  "keywords": [
+    "json",
+    "validator",
+    "validation"
+  ],
+  "author": "Peter Kelly <peter@pmkelly.net>",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/peterkelly/jsonidator/issues"
+  },
+  "homepage": "https://github.com/peterkelly/jsonidator#readme",
+  "devDependencies": {
+    "@types/node": "8.0.17",
+    "del": "3.0.0",
+    "gulp": "3.9.1",
+    "gulp-tslint": "8.1.1",
+    "gulp-typescript": "3.2.1",
+    "merge2": "1.1.0",
+    "run-sequence": "2.1.0",
+    "tslint": "5.5.0",
+    "typescript": "2.4.2"
+  }
+}
