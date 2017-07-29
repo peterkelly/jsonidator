@@ -18,7 +18,7 @@ import * as fs from "fs";
 
 import { parse, generate } from "./generate";
 
-function main(): void {
+export function main(): void {
     if (process.argv.length < 3) {
         console.error("Please specify model filename");
         process.exit(1);
@@ -31,5 +31,3 @@ function main(): void {
     // console.log(JSON.stringify(model, null, "    "));
     process.stdout.write(generate(model));
 }
-
-main();

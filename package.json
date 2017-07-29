@@ -7,6 +7,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "bin": {
+    "jsonidator": "cli.js"
+  },
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/peterkelly/jsonidator.git"
