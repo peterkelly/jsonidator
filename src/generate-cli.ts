@@ -16,7 +16,8 @@
 
 import * as fs from "fs";
 
-import { parse, generate } from "./generate";
+import { parse } from "./model";
+import { generate } from "./generate";
 
 export function main(): void {
     if (process.argv.length < 3) {

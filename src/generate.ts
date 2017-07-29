@@ -12,38 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const parser: any = require("./model-parser");
-
-export interface Model {
-    _kind: "model";
-    interfaces: Interface[];
-}
-
-export interface Interface {
-    _kind: "Interface";
-    name: string;
-    fields: Field[];
-}
-
-export interface Field {
-    _kind: "Field";
-    name: string;
-    optional: boolean;
-    nullable: boolean;
-    type: Type;
-}
-
-export type Type = ArrayType | NamedType;
-
-export interface ArrayType {
-    _kind: "ArrayType";
-    members: Type;
-}
-
-export interface NamedType {
-    _kind: "NamedType";
-    name: string;
-}
+import {
+    Model,
+    Interface,
+    Field,
+    Type,
+    // ArrayType,
+    // NamedType,
+} from "./model";
 
 function typeToString(type: Type): string {
     if (type._kind === "ArrayType")
@@ -135,8 +111,4 @@ export function generate(model: Model): string {
         generateInterfaces(model) +
         "\n" +
         generateValidationFunctions(model);
-}
-
-export function parse(input: string): Model {
-    return (<any> parser).parse(input);
 }

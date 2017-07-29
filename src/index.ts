@@ -32,5 +32,8 @@ export {
     ArrayType,
     NamedType,
     parse,
+} from "./model";
+
+export {
     generate,
 } from "./generate";
