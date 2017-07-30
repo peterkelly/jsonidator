@@ -37,3 +37,7 @@ export {
 export {
     generate,
 } from "./generate";
+
+export {
+    process
+} from "./stream";
