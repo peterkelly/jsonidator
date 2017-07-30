@@ -17,8 +17,6 @@ import {
     Interface,
     Field,
     Type,
-    // ArrayType,
-    // NamedType,
 } from "./model";
 
 function typeToString(type: Type): string {
@@ -70,31 +68,17 @@ function generateValidationFunctions(model: Model): string {
         const iface = model.interfaces[i];
         output.push("export function " + iface.name + "(obj: any, path?: string): " + iface.name + " {\n");
         output.push("    validation.checkObject(obj, path);\n");
-        // output.push("    path = path || \"\";\n");
         output.push("    return {\n");
         for (const field of iface.fields) {
             const accessor = `obj.${field.name}`;
             let expr = validationExprForType(field.type);
-            // if (field.nullable && field.optional)
-            //     expr = expr;
-            // else if (field.nullable)
-            //     expr = `(${field.name} === null) ? null : ${field.name}`;
-            // else if (field.optional)
-            //     expr = `(${field.name} === undefined) ? undefined : ${field.name}`;
             if (field.nullable)
                 expr = `(${accessor} === null) ? null : ${expr}`;
             if (field.optional)
                 expr = `(${accessor} === undefined) ? undefined : ${expr}`;
-
-
-            // output.push("        " + field.name + ": " + expr +
-            //     "(obj." + field.name + ", validation.join(path, " + JSON.stringify(field.name) + ")),\n");
-            // output.push(`        ${field.name}: ${expr}(obj.${field.name}, validation.join(path, ${JSON.stringify(field.name)})),\n`);
-
             output.push(`        ${field.name}: ${expr}(obj.${field.name}, validation.join(path, '${field.name}')),\n`);
 
         }
-        // output.push("    };\n");
         output.push("    }\n");
         output.push("}\n");
         if (i + 1 < model.interfaces.length)

@@ -26,16 +26,6 @@ export function process(): stream.Transform {
             if (!file.path.match(/\.model$/))
                 throw new Error("File " + path.basename(file.path) + "must have .model extension");
 
-            // console.log("transform");
-            // console.log("    file.constructor.name = " + file.constructor.name);
-            // // console.log("    file = " + JSON.stringify(file, null, "    "));
-            // console.log("    file.cwd      = " + file.cwd);
-            // console.log("    file.base     = " + file.base);
-            // console.log("    file.path     = " + file.path);
-            // console.log("    file.contents = " + file.contents.constructor.name);
-            // console.log("    encoding      = " + JSON.stringify(encoding));
-            // console.log("    callback      = " + callback);
-
             const model = parse(file.contents.toString("utf-8"));
             const output = generate(model);
             const out = new File({
@@ -44,10 +34,6 @@ export function process(): stream.Transform {
                 path: file.path.replace(/\.model$/, ".ts"),
                 contents: new Buffer(output),
             });
-
-            // console.log("    out.cwd       = " + outFile.cwd);
-            // console.log("    out.base      = " + outFile.base);
-            // console.log("    out.path      = " + outFile.path);
 
             transformer.push(out);
             callback(null);
