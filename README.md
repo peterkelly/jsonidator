@@ -4,8 +4,8 @@ JSONidator generates TypeScript code that dynamically type checks JSON data to
 ensure it complies with a schema defined in a model file. The syntax used to
 describe schemas, at present, is based on TypeScript.
 
-**Warning:** This project is in the early stages of development and it's API
-and input file format is likely to change in subsequent versions.
+**Warning:** This project is in the early stages of development and its API and
+input file format is likely to change in subsequent versions.
 
 # Supported features
 
@@ -20,6 +20,12 @@ features, such as union types and generics. JSONidator will likely support some
 of these in the future.
 
 # Example
+
+Install JSONidator. Note that it must appear in the dependencies section of
+your package.json, not just devDependencies, at it relies on certain validation
+code at runtime:
+
+    npm install --save jsonidator
 
 Create a file called `types.model`:
 
@@ -39,16 +45,16 @@ Create a file called `types.model`:
 Run the following command to generate a TypeScript file containing validation
 functions for the above:
 
-    jsonidator types.model > types.ts
+    node_modules/.bin/jsonidator types.model > types.ts
 
 The contents of `types.ts` will look like this:
 
     export interface Family {
-        // ... as above
+        // as above
     }
 
     export interface Person {
-        // ... as above
+        // as above
     }
 
     export function Family(obj: any, path?: string): Family {
