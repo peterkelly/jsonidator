@@ -96,3 +96,7 @@ export function boolean(data: any, path?: string): boolean {
         throw new ValidationError(path, "a boolean", data);
     return data;
 }
+
+export function any(data: any, path?: string): boolean {
+    return data;
+}

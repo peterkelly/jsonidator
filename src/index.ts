@@ -22,6 +22,7 @@ export {
     string,
     number,
     boolean,
+    any,
 } from "./validate";
 
 export {

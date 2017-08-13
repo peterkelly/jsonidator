@@ -56,6 +56,8 @@ function validationExprForType(type: Type): string {
                     return "validation.number";
                 case "boolean":
                     return "validation.boolean";
+                case "any":
+                    return "validation.any";
                 default:
                     return type.name;
             }
