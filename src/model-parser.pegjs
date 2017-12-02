@@ -19,12 +19,19 @@ Start = interfaces:Interface* _ {
     };
 }
 
-Interface = _ "interface" _ name:IDENT _ "{" fields:Field* _ "}" {
+Interface = _ "interface" _ name:IDENT _ type:NormalObjectType {
     return {
         _kind: "Interface",
         name,
-        fields
+        type
     };
+}
+
+NormalObjectType = "{" fields:Field* _ "}" {
+    return {
+        _kind: "NormalObjectType",
+        fields
+    }
 }
 
 Field = _ name:IDENT _ optional:"?"? _ ":" _ type:Type nullable:(_ "|" _ "null")? _ ";" {
@@ -37,7 +44,7 @@ Field = _ name:IDENT _ optional:"?"? _ ":" _ type:Type nullable:(_ "|" _ "null")
     };
 }
 
-Type = ArrayType / NamedType
+Type = ArrayType / NamedType / NormalObjectType
 
 ArrayType = members:NamedType _ "[" _ "]" {
     return {

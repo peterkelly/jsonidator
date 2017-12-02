@@ -22,7 +22,7 @@ export interface Model {
 export interface Interface {
     _kind: "Interface";
     name: string;
-    fields: Field[];
+    type: NormalObjectType;
 }
 
 export interface Field {
@@ -33,7 +33,7 @@ export interface Field {
     type: Type;
 }
 
-export type Type = ArrayType | NamedType;
+export type Type = ArrayType | NamedType | NormalObjectType;
 
 export interface ArrayType {
     _kind: "ArrayType";
@@ -47,4 +47,9 @@ export interface NamedType {
 
 export function parse(input: string): Model {
     return (<any> parser).parse(input);
+}
+
+export interface NormalObjectType {
+    _kind: "NormalObjectType";
+    fields: Field[];
 }

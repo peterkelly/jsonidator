@@ -17,71 +17,129 @@ import {
     Interface,
     Field,
     Type,
+    NormalObjectType,
 } from "./model";
 
-function typeToString(type: Type): string {
-    if (type._kind === "ArrayType")
-        return typeToString(type.members) + "[]";
-    else
-        return type.name;
+function outputType(type: Type, prefix: string, indent: string, output: string[]): void {
+    switch (type._kind) {
+        case "ArrayType":
+            outputType(type.members, prefix, indent + "    ", output);
+            output.push("[]");
+            break;
+        case "NamedType":
+            output.push(prefix + type.name);
+            break;
+        case "NormalObjectType":
+            outputNormalObjectType(type, prefix, indent + "    ", output);
+            break;
+    }
+}
+
+function outputNormalObjectType(type: NormalObjectType, prefix: string, indent: string, output: string[]): void {
+    output.push("{\n");
+    for (const field of type.fields) {
+        const optional = field.optional ? "?" : "";
+        const nullable = field.nullable ? " | null" : "";
+        output.push(`    ${indent}${field.name}${optional}: `);
+        outputType(field.type, "", indent, output);
+        output.push(`${nullable};\n`);
+    }
+    output.push(indent + "}");
 }
 
 function generateInterfaces(model: Model): string {
     const output: string[] = [];
     for (let i = 0; i < model.interfaces.length; i++) {
         const iface = model.interfaces[i];
-        output.push("export interface " + iface.name + " {\n");
-        for (const field of iface.fields) {
-            const optional = field.optional ? "?" : "";
-            const nullable = field.nullable ? " | null" : "";
-            const type = typeToString(field.type);
-            output.push(`    ${field.name}${optional}: ${type}${nullable};\n`);
-        }
-        output.push("}\n");
+        const otype = iface.type;
+        output.push("export interface " + iface.name + " ");
+        outputNormalObjectType(otype, "", "", output);
+        output.push("\n");
         if (i + 1 < model.interfaces.length)
             output.push("\n");
     }
     return output.join("");
 }
 
-function validationExprForType(type: Type): string {
+class Scope {
+    public nextFunctionId: number = 1;
+    public extraFunctions: string[] = [];
+}
+
+function outputValidationExpr(type: Type, output: string[], scope: Scope): void {
     switch (type._kind) {
         case "ArrayType":
-            return "validation.array(" + validationExprForType(type.members) + ")";
+            output.push("validation.array(");
+            outputValidationExpr(type.members, output, scope);
+            output.push(")");
+            break;
         case "NamedType":
             switch (type.name) {
                 case "string":
-                    return "validation.string";
+                    output.push("validation.string");
+                    break;
                 case "number":
-                    return "validation.number";
+                    output.push("validation.number");
+                    break;
                 case "boolean":
-                    return "validation.boolean";
+                    output.push("validation.boolean");
+                    break;
                 case "any":
-                    return "validation.any";
+                    output.push("validation.any");
+                    break;
                 default:
-                    return type.name;
+                    output.push(type.name);
+                    break;
             }
+            break;
+        case "NormalObjectType": {
+            const varName = "v";
+            const body: string[] = [];
+            outputValidationFunctionBody(type, varName, body, scope);
+
+            const functionId = scope.nextFunctionId++;
+            const functionName = "validate" + functionId;
+            output.push(functionName);
+            const extraContent: string[] = [];
+            extraContent.push("\n");
+            extraContent.push("function " + functionName + "(" + varName + ": any, path?: string): any {\n");
+            extraContent.push(body.join(""));
+            extraContent.push("}\n");
+            const lines = extraContent.join("").split("\n");
+            const indentedLines = lines.map(l => (l === "") ? "" : "    " + l);
+            scope.extraFunctions.push(indentedLines.join("\n"));
+            break;
+        }
     }
+}
+
+function outputValidationFunctionBody(type: NormalObjectType, varName: string, output: string[], scope: Scope) {
+    output.push("    validation.checkObject(" + varName + ", path);\n");
+    output.push("    return {\n");
+    for (const field of type.fields) {
+        const accessor = `${varName}.${field.name}`;
+        let prefix = "";
+        if (field.nullable)
+            prefix = `(${accessor} === null) ? null : ${prefix}`;
+        if (field.optional)
+            prefix = `(${accessor} === undefined) ? undefined : ${prefix}`;
+        output.push(`        ${field.name}: ${prefix}`);
+        outputValidationExpr(field.type, output, scope);
+        output.push(`(${varName}.${field.name}, validation.join(path, '${field.name}')),\n`);
+
+    }
+    output.push("    };\n");
 }
 
 function generateValidationFunctions(model: Model): string {
     const output: string[] = [];
     for (let i = 0; i < model.interfaces.length; i++) {
+        const scope = new Scope();
         const iface = model.interfaces[i];
-        output.push("export function " + iface.name + "(obj: any, path?: string): " + iface.name + " {\n");
-        output.push("    validation.checkObject(obj, path);\n");
-        output.push("    return {\n");
-        for (const field of iface.fields) {
-            const accessor = `obj.${field.name}`;
-            let expr = validationExprForType(field.type);
-            if (field.nullable)
-                expr = `(${accessor} === null) ? null : ${expr}`;
-            if (field.optional)
-                expr = `(${accessor} === undefined) ? undefined : ${expr}`;
-            output.push(`        ${field.name}: ${expr}(obj.${field.name}, validation.join(path, '${field.name}')),\n`);
-
-        }
-        output.push("    }\n");
+        const varName = "obj";
+        output.push("export function " + iface.name + "(" + varName + ": any, path?: string): " + iface.name + " {\n");
+        outputValidationFunctionBody(iface.type, varName, output, scope);
+        output.push(scope.extraFunctions.join(""));
         output.push("}\n");
         if (i + 1 < model.interfaces.length)
             output.push("\n");

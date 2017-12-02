@@ -10,3 +10,18 @@ interface Person {
     employed: boolean;
     profession?: string;
 }
+
+interface Player {
+    id: number;
+    name: string;
+    coords: {
+        cartesian: {
+            x: number;
+            y: number;
+        };
+        polar: {
+            r: number;
+            theta: number;
+        };
+    };
+}
