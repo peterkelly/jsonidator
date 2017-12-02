@@ -46,7 +46,7 @@ function outputFieldBody(body: FieldBody, indent: string, output: string[]) {
     const nullable = body.nullable ? " | null" : "";
     output.push(`${optional}: `);
     outputType(body.type, indent, output);
-    output.push(`${nullable};\n`);
+    output.push(`${nullable}`);
 }
 
 function outputNormalObjectType(type: NormalObjectType, indent: string, output: string[]): void {
@@ -55,6 +55,7 @@ function outputNormalObjectType(type: NormalObjectType, indent: string, output: 
         const body = field.body;
         output.push(`    ${indent}${field.name}`);
         outputFieldBody(body, indent, output);
+        output.push(";\n");
     }
     output.push(indent + "}");
 }
@@ -63,6 +64,7 @@ function outputIndexedObjectType(type: IndexedObjectType, indent: string, output
     output.push("{\n");
     output.push(indent + "    [key: string]");
     outputFieldBody(type.member, indent, output);
+    output.push(" | undefined;\n");
     output.push(indent + "}");
 }
 
@@ -114,8 +116,7 @@ function outputValidationExpr(type: Type, output: string[], scope: Scope): void 
                     break;
             }
             break;
-        case "NormalObjectType":
-        case "IndexedObjectType": {
+        case "NormalObjectType": {
             const varName = "v";
             const body: string[] = [];
             outputValidationFunctionBody(type, varName, body, scope);
@@ -131,6 +132,16 @@ function outputValidationExpr(type: Type, output: string[], scope: Scope): void 
             const lines = extraContent.join("").split("\n");
             const indentedLines = lines.map(l => (l === "") ? "" : "    " + l);
             scope.extraFunctions.push(indentedLines.join("\n"));
+            break;
+        }
+        case "IndexedObjectType": {
+            output.push("validation.dictionary(");
+            if (type.member.nullable)
+                output.push("validation.nullable(");
+            outputValidationExpr(type.member.type, output, scope);
+            if (type.member.nullable)
+                output.push(")");
+            output.push(")");
             break;
         }
     }
@@ -157,23 +168,13 @@ function outputNormalValidationFunctionBody(type: NormalObjectType, varName: str
 
 function outputIndexedValidationFunctionBody(type: IndexedObjectType, varName: string, output: string[], scope: Scope) {
     const body = type.member;
-
-    output.push("    validation.checkObject(" + varName + ", path);\n");
-    output.push("    const result: any = {};\n");
-    output.push("    for (let key in " + varName + ") {\n");
-    output.push("        const value = " + varName + "[key];\n");
-
-    let prefix = "";
+    output.push("    return validation.dictionary(");
     if (body.nullable)
-        prefix = `(value === null) ? null : ${prefix}`;
-    if (body.optional)
-        prefix = `(value === undefined) ? undefined : ${prefix}`;
-    output.push(`        result[key] = ${prefix}`);
-    outputValidationExpr(body.type, output, scope);
-    output.push(`(value, validation.join(path, key));\n`);
-
-    output.push("    }\n");
-    output.push("    return result;\n");
+        output.push("validation.nullable(");
+    outputValidationExpr(type.member.type, output, scope);
+    if (body.nullable)
+        output.push(")");
+    output.push(")(" + varName + ");\n");
 }
 
 function outputValidationFunctionBody(type: ObjectType, varName: string, output: string[], scope: Scope): void {

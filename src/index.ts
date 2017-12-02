@@ -15,9 +15,13 @@
 /// <reference types="node" />
 
 export {
+    Dictionary,
     ValidationError,
     join,
+    optional,
+    nullable,
     array,
+    dictionary,
     checkObject,
     string,
     number,

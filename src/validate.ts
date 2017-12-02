@@ -13,6 +13,7 @@
 // limitations under the License.
 
 export type ValidationFunction<T> = (data: any, path?: string) => T;
+export type Dictionary<T> = { [key: string]: T | undefined };
 
 export class ValidationError extends Error {
     public constructor(path: string | undefined, expected: string, value: any) {
@@ -56,6 +57,24 @@ export function join(parent: string | undefined, child: string): string {
         return child;
 }
 
+export function optional<T>(validationFun: ValidationFunction<T>): ValidationFunction<T | undefined> {
+    return (data: any, path?: string): T | undefined => {
+        if (data === undefined)
+            return undefined;
+        else
+            return validationFun(data);
+    };
+}
+
+export function nullable<T>(validationFun: ValidationFunction<T>): ValidationFunction<T | null> {
+    return (data: any, path?: string): T | null => {
+        if (data === null)
+            return null;
+        else
+            return validationFun(data);
+    };
+}
+
 export function array<T>(validationFun: ValidationFunction<T>): ValidationFunction<T[]> {
     return (data: any, path?: string): T[] => {
         path = path || "";
@@ -66,6 +85,17 @@ export function array<T>(validationFun: ValidationFunction<T>): ValidationFuncti
             const element = data[i];
             result.push(validationFun(element, path + "[" + i + "]"));
         }
+        return result;
+    };
+}
+
+export function dictionary<T>(validationFun: ValidationFunction<T>): ValidationFunction<Dictionary<T>> {
+    return (data: any, path?: string): Dictionary<T> => {
+        checkObject(data, path);
+        path = path || "";
+        const result: Dictionary<T> = {};
+        for (const key in data)
+            result[key] = validationFun(data[key], path + "[" + JSON.stringify(key) + "]");
         return result;
     };
 }

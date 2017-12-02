@@ -36,11 +36,11 @@ NormalObjectType = "{" fields:Field* _ "}" {
     }
 }
 
-IndexedObjectType = "{" _ "[" _ IDENT _ ":" _ "string" _ "]" _ optional:"?"? _ ":" _ memberType:Type nullable:(_ "|" _ "null")? _ ";" _ "}" {
+IndexedObjectType = "{" _ "[" _ IDENT _ ":" _ "string" _ "]" _ ":" _ memberType:Type nullable:(_ "|" _ "null")? _ ";" _ "}" {
     return {
         _kind: "IndexedObjectType",
         member: {
-            optional: !!optional,
+            optional: false,
             nullable: !!nullable,
             type: memberType,
         }
