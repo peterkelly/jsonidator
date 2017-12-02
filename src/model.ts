@@ -22,18 +22,16 @@ export interface Model {
 export interface Interface {
     _kind: "Interface";
     name: string;
-    type: NormalObjectType;
+    type: ObjectType;
 }
 
 export interface Field {
     _kind: "Field";
     name: string;
-    optional: boolean;
-    nullable: boolean;
-    type: Type;
+    body: FieldBody;
 }
 
-export type Type = ArrayType | NamedType | NormalObjectType;
+export type Type = ArrayType | NamedType | ObjectType;
 
 export interface ArrayType {
     _kind: "ArrayType";
@@ -46,10 +44,53 @@ export interface NamedType {
 }
 
 export function parse(input: string): Model {
-    return (<any> parser).parse(input);
+    try {
+        return (<any> parser).parse(input);
+    }
+    catch (e) {
+        if (e instanceof parser.SyntaxError)
+            throw new ParseError(e);
+        else
+            throw e;
+    }
 }
+
+export type ObjectType = NormalObjectType | IndexedObjectType;
 
 export interface NormalObjectType {
     _kind: "NormalObjectType";
     fields: Field[];
+}
+
+export interface IndexedObjectType {
+    _kind: "IndexedObjectType";
+    member: FieldBody;
+}
+
+export interface FieldBody {
+    _kind: "FieldType";
+    optional: boolean;
+    nullable: boolean;
+    type: Type;
+}
+
+export class ParseError extends Error {
+    public location: {
+        start: {
+            offset: number;
+            line: number;
+            column: number;
+        };
+        end: {
+            offset: number;
+            line: number;
+            column: number;
+        };
+    };
+
+    public constructor(e: any) {
+        super(e.message);
+        this.location = e.location;
+        Object.setPrototypeOf(this, ParseError.prototype);
+    }
 }

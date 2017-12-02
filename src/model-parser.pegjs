@@ -19,13 +19,15 @@ Start = interfaces:Interface* _ {
     };
 }
 
-Interface = _ "interface" _ name:IDENT _ type:NormalObjectType {
+Interface = _ "interface" _ name:IDENT _ type:ObjectType {
     return {
         _kind: "Interface",
         name,
         type
     };
 }
+
+ObjectType = NormalObjectType / IndexedObjectType
 
 NormalObjectType = "{" fields:Field* _ "}" {
     return {
@@ -34,17 +36,30 @@ NormalObjectType = "{" fields:Field* _ "}" {
     }
 }
 
+IndexedObjectType = "{" _ "[" _ IDENT _ ":" _ "string" _ "]" _ optional:"?"? _ ":" _ memberType:Type nullable:(_ "|" _ "null")? _ ";" _ "}" {
+    return {
+        _kind: "IndexedObjectType",
+        member: {
+            optional: !!optional,
+            nullable: !!nullable,
+            type: memberType,
+        }
+    }
+}
+
 Field = _ name:IDENT _ optional:"?"? _ ":" _ type:Type nullable:(_ "|" _ "null")? _ ";" {
     return {
         _kind: "Field",
-        name,
-        optional: !!optional,
-        nullable: !!nullable,
-        type
+        name: name,
+        body: {
+            optional: !!optional,
+            nullable: !!nullable,
+            type: type,
+        }
     };
 }
 
-Type = ArrayType / NamedType / NormalObjectType
+Type = ArrayType / NamedType / ObjectType
 
 ArrayType = members:NamedType _ "[" _ "]" {
     return {

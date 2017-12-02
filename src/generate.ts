@@ -16,34 +16,53 @@ import {
     Model,
     Interface,
     Field,
+    FieldBody,
     Type,
+    ObjectType,
     NormalObjectType,
+    IndexedObjectType,
 } from "./model";
 
-function outputType(type: Type, prefix: string, indent: string, output: string[]): void {
+function outputType(type: Type, indent: string, output: string[]): void {
     switch (type._kind) {
         case "ArrayType":
-            outputType(type.members, prefix, indent + "    ", output);
+            outputType(type.members, indent + "    ", output);
             output.push("[]");
             break;
         case "NamedType":
-            output.push(prefix + type.name);
+            output.push(type.name);
             break;
         case "NormalObjectType":
-            outputNormalObjectType(type, prefix, indent + "    ", output);
+            outputNormalObjectType(type, indent + "    ", output);
+            break;
+        case "IndexedObjectType":
+            outputIndexedObjectType(type, indent + "    ", output);
             break;
     }
 }
 
-function outputNormalObjectType(type: NormalObjectType, prefix: string, indent: string, output: string[]): void {
+function outputFieldBody(body: FieldBody, indent: string, output: string[]) {
+    const optional = body.optional ? "?" : "";
+    const nullable = body.nullable ? " | null" : "";
+    output.push(`${optional}: `);
+    outputType(body.type, indent, output);
+    output.push(`${nullable};\n`);
+}
+
+function outputNormalObjectType(type: NormalObjectType, indent: string, output: string[]): void {
     output.push("{\n");
     for (const field of type.fields) {
-        const optional = field.optional ? "?" : "";
-        const nullable = field.nullable ? " | null" : "";
-        output.push(`    ${indent}${field.name}${optional}: `);
-        outputType(field.type, "", indent, output);
-        output.push(`${nullable};\n`);
+        const body = field.body;
+        output.push(`    ${indent}${field.name}`);
+        outputFieldBody(body, indent, output);
     }
+    output.push(indent + "}");
+}
+
+function outputIndexedObjectType(type: IndexedObjectType, indent: string, output: string[]): void {
+    output.push("{\n");
+    output.push(indent + "    [key: string]");
+    outputFieldBody(type.member, indent, output);
     output.push(indent + "}");
 }
 
@@ -53,7 +72,10 @@ function generateInterfaces(model: Model): string {
         const iface = model.interfaces[i];
         const otype = iface.type;
         output.push("export interface " + iface.name + " ");
-        outputNormalObjectType(otype, "", "", output);
+        if (otype._kind === "NormalObjectType")
+            outputNormalObjectType(otype, "", output);
+        else
+            outputIndexedObjectType(otype, "", output);
         output.push("\n");
         if (i + 1 < model.interfaces.length)
             output.push("\n");
@@ -92,7 +114,8 @@ function outputValidationExpr(type: Type, output: string[], scope: Scope): void 
                     break;
             }
             break;
-        case "NormalObjectType": {
+        case "NormalObjectType":
+        case "IndexedObjectType": {
             const varName = "v";
             const body: string[] = [];
             outputValidationFunctionBody(type, varName, body, scope);
@@ -113,34 +136,67 @@ function outputValidationExpr(type: Type, output: string[], scope: Scope): void 
     }
 }
 
-function outputValidationFunctionBody(type: NormalObjectType, varName: string, output: string[], scope: Scope) {
+function outputNormalValidationFunctionBody(type: NormalObjectType, varName: string, output: string[], scope: Scope) {
     output.push("    validation.checkObject(" + varName + ", path);\n");
     output.push("    return {\n");
     for (const field of type.fields) {
+        const body = field.body;
         const accessor = `${varName}.${field.name}`;
         let prefix = "";
-        if (field.nullable)
+        if (body.nullable)
             prefix = `(${accessor} === null) ? null : ${prefix}`;
-        if (field.optional)
+        if (body.optional)
             prefix = `(${accessor} === undefined) ? undefined : ${prefix}`;
         output.push(`        ${field.name}: ${prefix}`);
-        outputValidationExpr(field.type, output, scope);
-        output.push(`(${varName}.${field.name}, validation.join(path, '${field.name}')),\n`);
+        outputValidationExpr(body.type, output, scope);
+        output.push(`(${accessor}, validation.join(path, '${field.name}')),\n`);
 
     }
     output.push("    };\n");
 }
 
+function outputIndexedValidationFunctionBody(type: IndexedObjectType, varName: string, output: string[], scope: Scope) {
+    const body = type.member;
+
+    output.push("    validation.checkObject(" + varName + ", path);\n");
+    output.push("    const result: any = {};\n");
+    output.push("    for (let key in " + varName + ") {\n");
+    output.push("        const value = " + varName + "[key];\n");
+
+    let prefix = "";
+    if (body.nullable)
+        prefix = `(value === null) ? null : ${prefix}`;
+    if (body.optional)
+        prefix = `(value === undefined) ? undefined : ${prefix}`;
+    output.push(`        result[key] = ${prefix}`);
+    outputValidationExpr(body.type, output, scope);
+    output.push(`(value, validation.join(path, key));\n`);
+
+    output.push("    }\n");
+    output.push("    return result;\n");
+}
+
+function outputValidationFunctionBody(type: ObjectType, varName: string, output: string[], scope: Scope): void {
+    if (type._kind === "NormalObjectType")
+        outputNormalValidationFunctionBody(type, varName, output, scope);
+    else
+        outputIndexedValidationFunctionBody(type, varName, output, scope);
+}
+
+function outputObjectValidationFunction(type: ObjectType, name: string, varName: string, output: string[]): void {
+    const scope = new Scope();
+    output.push("export function " + name + "(" + varName + ": any, path?: string): " + name + " {\n");
+    outputValidationFunctionBody(type, varName, output, scope);
+    output.push(scope.extraFunctions.join(""));
+    output.push("}\n");
+}
+
 function generateValidationFunctions(model: Model): string {
     const output: string[] = [];
     for (let i = 0; i < model.interfaces.length; i++) {
-        const scope = new Scope();
         const iface = model.interfaces[i];
         const varName = "obj";
-        output.push("export function " + iface.name + "(" + varName + ": any, path?: string): " + iface.name + " {\n");
-        outputValidationFunctionBody(iface.type, varName, output, scope);
-        output.push(scope.extraFunctions.join(""));
-        output.push("}\n");
+        outputObjectValidationFunction(iface.type, iface.name, varName, output);
         if (i + 1 < model.interfaces.length)
             output.push("\n");
     }

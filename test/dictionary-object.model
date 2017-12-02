@@ -1,0 +1,6 @@
+interface Polygon {
+    [key: string]: {
+        x: number;
+        y: number;
+    };
+}

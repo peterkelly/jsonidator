@@ -15,7 +15,7 @@
 import * as stream from "stream";
 import * as path from "path";
 
-import { parse } from "./model";
+import { parse, ParseError } from "./model";
 import { generate } from "./generate";
 
 export function process(): stream.Transform {
@@ -23,20 +23,34 @@ export function process(): stream.Transform {
         objectMode: true,
         transform: (file: any, encoding: any, callback: any) => {
             const File = file.constructor;
-            if (!file.path.match(/\.model$/))
-                throw new Error("File " + path.basename(file.path) + "must have .model extension");
+            if (!file.path.match(/\.model$/)) {
+                callback(new Error("File " + path.basename(file.path) + "must have .model extension"));
+                return;
+            }
 
-            const model = parse(file.contents.toString("utf-8"));
-            const output = generate(model);
-            const out = new File({
-                cwd: file.cwd,
-                base: file.base,
-                path: file.path.replace(/\.model$/, ".ts"),
-                contents: new Buffer(output),
-            });
+            try {
+                const model = parse(file.contents.toString("utf-8"));
+                const output = generate(model);
+                const out = new File({
+                    cwd: file.cwd,
+                    base: file.base,
+                    path: file.path.replace(/\.model$/, ".ts"),
+                    contents: new Buffer(output),
+                });
 
-            transformer.push(out);
-            callback(null);
+                transformer.push(out);
+                callback(null);
+            }
+            catch (e) {
+                if (e instanceof ParseError) {
+                    const start = e.location.start;
+                    const msg = (`${file.path}:${start.line}:${start.column}: ${e.message}`);
+                    callback(new Error(msg));
+                } else {
+                    callback(e);
+                }
+
+            }
         }
     });
     return transformer;

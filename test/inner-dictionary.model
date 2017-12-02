@@ -1,0 +1,9 @@
+interface Shape {
+    color: string;
+    poly: {
+        [key: string]: {
+            x: number;
+            y: number;
+        };
+    };
+}

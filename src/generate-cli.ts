@@ -16,7 +16,8 @@
 
 import * as fs from "fs";
 
-import { parse } from "./model";
+// const parser: any = require("./model-parser");
+import { parse, ParseError } from "./model";
 import { generate } from "./generate";
 
 export function main(): void {
@@ -28,7 +29,36 @@ export function main(): void {
     const filename = process.argv[2];
 
     const input = fs.readFileSync(filename, { encoding: "utf-8" });
-    const model = parse(input);
-    // console.log(JSON.stringify(model, null, "    "));
-    process.stdout.write(generate(model));
+    try {
+        const model = parse(input);
+        // console.log(JSON.stringify(model, null, "    "));
+        process.stdout.write(generate(model));
+    }
+    catch (e) {
+        if (e instanceof ParseError) {
+            const start = e.location.start;
+            console.error(`${filename}:${start.line}:${start.column}: ${e.message}`);
+        } else {
+            console.error(e);
+        }
+        // let isPegSyntaxError = false;
+        // // console.log("peg$SyntaxError = " + parser.SyntaxError);
+        // if (e instanceof parser.SyntaxError)
+        //     isPegSyntaxError = true;
+        // console.log("isPegSyntaxError = " + isPegSyntaxError);
+        // if ((typeof(e) === "object") && (e !== null)) {
+        //     console.error("e is a " + e.constructor.name);
+        //     try {
+        //         console.error(JSON.stringify(e, null, "    "));
+        //     }
+        //     catch (e) {
+        //     }
+        // }
+        // else {
+        //     console.error("e is a " + typeof(e));
+        // }
+        // console.error("====");
+        // console.error(e);
+        process.exit(1);
+    }
 }
